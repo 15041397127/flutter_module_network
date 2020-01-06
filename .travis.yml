@@ -1,0 +1,66 @@
+matrix:
+  include:
+    - os: linux
+      language: android
+      dist: trusty
+      licenses:
+        - 'android-sdk-preview-license-.+'
+        - 'android-sdk-license-.+'
+        - 'google-gdk-license-.+'
+      android:
+        components:
+          - tools
+          - platform-tools
+          - build-tools-28.0.3
+          - android-28
+          - sys-img-armeabi-v7a-google_apis-28
+          - extra-android-m2repository
+          - extra-google-m2repository
+          - extra-google-android-support
+      jdk: oraclejdk8
+      sudo: false
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - libstdc++6
+            - fonts-droid
+      before_script:
+        - yes | sdkmanager --update
+      script:
+        - yes | flutter doctor --android-licenses
+        - flutter doctor && flutter -v build apk
+      before_deploy:
+        - bash ./generate_aars.sh
+      deploy:
+        provider: releases
+        api_key: ${GITHUB_TOKEN}
+        file:
+          - .android/AARs/FlutterAARs.zip
+        skip_cleanup: true
+        on:
+          tags: true
+    - os: osx
+      language: objective-c
+      osx_image: xcode11.2
+      before_script:
+        - pod repo update
+      script:
+        - flutter doctor && flutter -v build ios --no-codesign
+      before_deploy:
+        - bash ./generate_pods.sh
+      deploy:
+        provider: releases
+        api_key: ${GITHUB_TOKEN}
+        file:
+          - .ios/products/FlutterPods.zip
+        skip_cleanup: true
+        on:
+          tags: true
+before_install:
+  - git clone -b 'v1.12.13+hotfix.5' --depth 1 https://github.com/flutter/flutter.git
+  - export PATH="$PATH:`pwd`/flutter/bin"
+cache:
+  directories:
+    - $HOME/.pub-cache
